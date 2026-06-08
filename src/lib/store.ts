@@ -349,7 +349,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   isPendingVerification: boolean;
-  pendingUserData: { token: string; userId: string; user: User } | null;
+  pendingUserData: { token: string; userId: string; user: User; tempToken?: string } | null;
   login: (email: string, password: string) => Promise<void>;
   signup: (data: { fullName: string; email: string; password: string; instituteId?: number; technology?: string; termsAcceptances?: Array<{ terms_version_id: number; type: string }> }) => Promise<{ token: string; userId: string }>;
   logout: () => Promise<void>;
@@ -395,7 +395,7 @@ const saveAuthSession = (user: User | null, isAuthenticated: boolean) => {
 
 const initialAuth = loadAuthSession();
 
-const loadPendingVerification = (): { isPendingVerification: boolean; pendingUserData: { token: string; userId: string; user: User } | null } => {
+const loadPendingVerification = (): { isPendingVerification: boolean; pendingUserData: { token: string; userId: string; user: User; tempToken?: string } | null } => {
   if (typeof window === 'undefined') return { isPendingVerification: false, pendingUserData: null };
   try {
     const stored = localStorage.getItem('dakkho-pending-verification');
@@ -469,11 +469,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         technology: data.technology,
         termsAcceptances: data.termsAcceptances,
       });
-      if (res.success && res.token) {
-        // Store token but do NOT set isAuthenticated yet — wait for OTP
-        setAuthToken(res.token);
+      if (res.success) {
+        // New flow: Account NOT created yet — OTP must be verified first
+        // Store temp data for OTP verification, NO auth token yet
         const user: User = {
-          id: res.userId || '',
+          id: '',
           fullName: data.fullName,
           email: data.email,
           instituteId: data.instituteId,
@@ -484,11 +484,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           emailVerified: false,
           enrolledCourseIds: [],
         };
-        const pendingData = { token: res.token, userId: res.userId || '', user };
-        // Keep isAuthenticated: false — user must verify OTP first
+        const pendingData = { token: '', userId: '', user, tempToken: (res as any).tempToken || '' };
+        // Keep isAuthenticated: false — user must verify OTP first, then account will be created
         set({ user, isAuthenticated: false, isLoading: false, isPendingVerification: true, pendingUserData: pendingData });
         savePendingVerification(pendingData);
-        return { token: res.token, userId: res.userId || '' };
+        return { otpSent: res.otpSent, tempToken: (res as any).tempToken || '' };
       } else {
         throw new Error(res.message || 'Signup failed');
       }
@@ -518,22 +518,43 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   verifyOTP: async (email, otp) => {
     try {
-      const res = await authApi.verifyOTP({ email, otp });
+      const pendingData = get().pendingUserData;
+      const tempToken = pendingData?.tempToken || '';
+      const res = await authApi.verifyOTP({ email, otp, tempToken });
       if (res.success) {
-        const pendingData = get().pendingUserData;
-        const user = get().user;
-        if (user) {
-          const updatedUser = { ...user, emailVerified: true };
-          // NOW set isAuthenticated: true — OTP is verified
-          set({ user: updatedUser, isAuthenticated: true, isPendingVerification: false, pendingUserData: null });
-          saveAuthSession(updatedUser, true);
-          savePendingVerification(null);
-        } else if (pendingData) {
-          // Fallback: use pending user data if user state was lost
-          const verifiedUser = { ...pendingData.user, emailVerified: true };
+        // New flow: If signup verification, API returns token + userId + user data
+        const apiRes = res as any;
+        if (apiRes.token && apiRes.userId) {
+          // Signup verification — account was just created
+          setAuthToken(apiRes.token);
+          const verifiedUser: User = {
+            id: apiRes.userId || '',
+            fullName: apiRes.user?.name || get().user?.fullName || '',
+            email: apiRes.user?.email || email,
+            instituteId: apiRes.user?.instituteId || get().user?.instituteId,
+            technology: apiRes.user?.technology || get().user?.technology,
+            avatarUrl: '',
+            role: 'student',
+            emailVerified: true,
+            enrolledCourseIds: [],
+          };
           set({ user: verifiedUser, isAuthenticated: true, isPendingVerification: false, pendingUserData: null });
           saveAuthSession(verifiedUser, true);
           savePendingVerification(null);
+        } else {
+          // Existing user email verification
+          const user = get().user;
+          if (user) {
+            const updatedUser = { ...user, emailVerified: true };
+            set({ user: updatedUser, isPendingVerification: false, pendingUserData: null });
+            saveAuthSession(updatedUser, true);
+            savePendingVerification(null);
+          } else if (pendingData) {
+            const verifiedUser = { ...pendingData.user, emailVerified: true };
+            set({ user: verifiedUser, isPendingVerification: false, pendingUserData: null });
+            saveAuthSession(verifiedUser, true);
+            savePendingVerification(null);
+          }
         }
         return true;
       }
