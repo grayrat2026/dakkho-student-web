@@ -191,13 +191,11 @@ export function MyCoursesPage() {
                       <span>·</span>
                       <span>{course.totalVideos} videos</span>
                     </div>
-                    {/* Progress bar placeholder */}
+                    {/* Progress bar - shows 0% until real progress tracking is implemented */}
                     <div className="mt-2 h-1.5 bg-muted/50 rounded-full overflow-hidden">
-                      <motion.div
+                      <div
                         className="h-full bg-gradient-to-r from-sky-400 to-blue-500 rounded-full"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${Math.min(Math.random() * 40 + 10, 60)}%` }}
-                        transition={{ delay: 0.3 + i * 0.05, duration: 0.5 }}
+                        style={{ width: '0%' }}
                       />
                     </div>
                   </div>
