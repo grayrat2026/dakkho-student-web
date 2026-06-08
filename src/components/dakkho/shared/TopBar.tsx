@@ -16,10 +16,14 @@ export function TopBar() {
   const storeNotifications = useNotificationStore((s) => s.notifications);
   const markAsRead = useNotificationStore((s) => s.markAsRead);
   // Subscribe to config directly so re-renders happen when config loads
-  const topBarElements = useServerConfigStore((s) => s.config?.topBarElements);
+  const config = useServerConfigStore((s) => s.config);
+  const configLoading = useServerConfigStore((s) => s.isLoading);
+  const topBarElements = config?.topBarElements;
 
-  // Resolve visibility: use config if available, otherwise default all true
+  // Resolve visibility: use config if available AND fully loaded, otherwise default all true
+  // This prevents elements from hiding during config loading (race condition fix)
   const isVisible = (element: string) => {
+    if (configLoading) return true; // Keep visible while config is loading
     if (!topBarElements) return true; // Default visible before config loads
     return (topBarElements as Record<string, boolean>)[element] ?? true;
   };
