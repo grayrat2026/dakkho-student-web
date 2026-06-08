@@ -150,8 +150,13 @@ export interface AuthResponse {
     name: string;
     email: string;
     instituteId: number | null;
+    institute: string | null;
     technology: string | null;
+    phone: string;
+    bio: string;
+    semester: string;
     emailVerified: boolean;
+    avatarUrl: string;
     packages: UserPackage[];
   };
   message?: string;
@@ -162,8 +167,13 @@ export interface UserProfile {
   email: string;
   name: string;
   instituteId: number | null;
+  institute: string | null;
   technology: string | null;
+  phone: string;
+  bio: string;
+  semester: string;
   emailVerified: boolean;
+  avatarUrl: string;
   packages: UserPackage[];
 }
 

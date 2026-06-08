@@ -20,14 +20,14 @@ export function EditProfilePage() {
 
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [email, setEmail] = useState(user?.email || '');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState(user?.phone || '');
   const [institute, setInstitute] = useState(user?.institute || '');
   const [technology, setTechnology] = useState(user?.technology || '');
   const [apiInstitutes, setApiInstitutes] = useState<Institute[]>([]);
   const [apiTechnologies, setApiTechnologies] = useState<Technology[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
-  const [bio, setBio] = useState('');
-  const [semester, setSemester] = useState('');
+  const [bio, setBio] = useState(user?.bio || '');
+  const [semester, setSemester] = useState(user?.semester || '');
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -52,15 +52,17 @@ export function EditProfilePage() {
         setApiInstitutes(instRes.institutes);
         setApiTechnologies(techRes.technologies);
 
-        // Pre-fill profile fields from API
+        // Pre-fill profile fields from API (overrides store defaults if API returns data)
         if (profileRes?.profile) {
           if (profileRes.profile.phone) setPhone(profileRes.profile.phone);
           if (profileRes.profile.bio) setBio(profileRes.profile.bio);
           if (profileRes.profile.semester) setSemester(profileRes.profile.semester);
           // Update avatarUrl in store if available
           const currentUser = userRef.current;
-          if (profileRes.profile.avatarUrl && currentUser && !currentUser.avatarUrl) {
-            setUser({ ...currentUser, avatarUrl: profileRes.profile.avatarUrl });
+          if (profileRes.profile.avatarUrl && currentUser) {
+            if (!currentUser.avatarUrl || currentUser.avatarUrl !== profileRes.profile.avatarUrl) {
+              setUser({ ...currentUser, avatarUrl: profileRes.profile.avatarUrl });
+            }
           }
         }
       } catch (err) {
@@ -109,7 +111,7 @@ export function EditProfilePage() {
 
       if (result.success !== false) {
         if (user) {
-          setUser({ ...user, fullName, email, institute, technology });
+          setUser({ ...user, fullName, email, institute, technology, phone, bio, semester });
         }
         setSaved(true);
         setTimeout(() => setSaved(false), 3000);
@@ -128,7 +130,7 @@ export function EditProfilePage() {
               const retryResult = await studentProfileApi.update(safeUpdates as Parameters<typeof studentProfileApi.update>[0]);
               if (retryResult.success !== false) {
                 if (user) {
-                  setUser({ ...user, fullName, email, institute, technology });
+                  setUser({ ...user, fullName, email, institute, technology, phone, bio, semester });
                 }
                 setSaveError('Profile partially updated. Some fields (bio/phone/semester) require admin setup.');
                 setSaved(true);
@@ -163,7 +165,7 @@ export function EditProfilePage() {
 
           await studentProfileApi.update(safeUpdates as Parameters<typeof studentProfileApi.update>[0]);
           if (user) {
-            setUser({ ...user, fullName, email, institute, technology });
+            setUser({ ...user, fullName, email, institute, technology, phone, bio, semester });
           }
           setSaveError('Profile partially updated. Some fields (bio/phone/semester) require admin setup.');
           setSaved(true);

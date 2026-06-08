@@ -337,6 +337,9 @@ export interface User {
   institute?: string;
   instituteId?: number;
   technology?: string;
+  phone?: string;
+  bio?: string;
+  semester?: string;
   avatarUrl?: string;
   role: string;
   isNewUser?: boolean;
@@ -441,9 +444,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           fullName: res.user?.name || '',
           email: res.user?.email || email,
           instituteId: res.user?.instituteId || undefined,
+          institute: res.user?.institute || undefined,
           technology: res.user?.technology || undefined,
+          phone: res.user?.phone || '',
+          bio: res.user?.bio || '',
+          semester: res.user?.semester || '',
           emailVerified: res.user?.emailVerified || false,
-          avatarUrl: '',
+          avatarUrl: res.user?.avatarUrl || '',
           role: 'student',
           isNewUser: false,
           enrolledCourseIds: [],
@@ -532,8 +539,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             fullName: apiRes.user?.name || get().user?.fullName || '',
             email: apiRes.user?.email || email,
             instituteId: apiRes.user?.instituteId || get().user?.instituteId,
+            institute: apiRes.user?.institute || get().user?.institute,
             technology: apiRes.user?.technology || get().user?.technology,
-            avatarUrl: '',
+            phone: apiRes.user?.phone || '',
+            bio: apiRes.user?.bio || '',
+            semester: apiRes.user?.semester || '',
+            avatarUrl: apiRes.user?.avatarUrl || '',
             role: 'student',
             emailVerified: true,
             enrolledCourseIds: [],
@@ -588,9 +599,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           fullName: res.user.name,
           email: res.user.email,
           instituteId: res.user.instituteId || undefined,
+          institute: res.user.institute || undefined,
           technology: res.user.technology || undefined,
+          phone: res.user.phone || '',
+          bio: res.user.bio || '',
+          semester: res.user.semester || '',
           emailVerified: res.user.emailVerified,
-          avatarUrl: currentUser?.avatarUrl || '',
+          avatarUrl: res.user.avatarUrl || currentUser?.avatarUrl || '',
           role: 'student',
         };
         set({ user });
