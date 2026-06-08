@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Star, Users, Clock, BookOpen, Play, ChevronLeft, Heart, Share2, Award, CheckCircle, ChevronDown, ChevronRight, User } from 'lucide-react';
 import { useNavigationStore, useBookmarkStore, useAuthStore } from '@/lib/store';
 import { useCourse, useInstructor, useCategories, useCourseVideos, useCourses } from '@/lib/data-hooks';
-import { studentProfileApi } from '@/lib/api-client';
+import { studentProfileApi, learningItemsApi } from '@/lib/api-client';
 import { formatDuration, getLevelColor } from '@/lib/mock-data';
 import { GlassCard } from '../shared/GlassCard';
 import { GradientButton } from '../shared/GradientButton';
@@ -60,15 +60,45 @@ export function CourseDetailPage() {
     ? allCourses.filter((c) => c.categoryId === course.categoryId && c.id !== course.id).slice(0, 4)
     : [];
 
-  // What You'll Learn items (derived from tags and course content)
-  const learnings = course ? [
-    `Master the fundamentals of ${course.tags[0] || course.title.split(' ').slice(0, 2).join(' ')}`,
-    `Build real-world projects with hands-on practice`,
-    `Understand core concepts and industry best practices`,
-    `Prepare effectively for BTEB examinations`,
-    `Gain practical skills for professional development`,
-    ...(course.tags.length > 1 ? [`Work with ${course.tags.slice(1).join(', ')} technologies`] : []),
-  ] : [];
+  // What You'll Learn items - fetch from API
+  const [learnings, setLearnings] = useState<string[]>([]);
+  const [fallbackLearnings, setFallbackLearnings] = useState<string[]>([]);
+
+  // Generate fallback learnings from course tags
+  useEffect(() => {
+    if (course) {
+      setFallbackLearnings([
+        `Master the fundamentals of ${course.tags[0] || course.title.split(' ').slice(0, 2).join(' ')}`,
+        `Build real-world projects with hands-on practice`,
+        `Understand core concepts and industry best practices`,
+        `Prepare effectively for BTEB examinations`,
+        `Gain practical skills for professional development`,
+        ...(course.tags.length > 1 ? [`Work with ${course.tags.slice(1).join(', ')} technologies`] : []),
+      ]);
+    } else {
+      setFallbackLearnings([]);
+    }
+  }, [course]);
+
+  // Fetch learning items from API
+  useEffect(() => {
+    if (courseId) {
+      learningItemsApi.getItems(courseId)
+        .then((result) => {
+          if (result.success && result.items && result.items.length > 0) {
+            setLearnings(result.items.map((item) => item.item_text));
+          } else {
+            setLearnings([]);
+          }
+        })
+        .catch(() => {
+          setLearnings([]);
+        });
+    }
+  }, [courseId]);
+
+  // Use API data if available, otherwise fallback to generated
+  const displayLearnings = learnings.length > 0 ? learnings : fallbackLearnings;
 
   // Group videos into sections (every 8 videos = 1 section)
   const sections = videos.length > 0
@@ -235,7 +265,7 @@ export function CourseDetailPage() {
                 <GlassCard className="p-6">
                   <h2 className="text-lg font-bold mb-4">What You&apos;ll Learn</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {learnings.map((item, i) => (
+                    {displayLearnings.map((item, i) => (
                       <motion.div
                         key={i}
                         className="flex items-start gap-3"

@@ -556,3 +556,11 @@ export const subjectsApi = {
   getCourseSubjects: (courseId: string) =>
     apiGet<{ success: boolean; subjects: any[] }>(`/api/courses/${courseId}/subjects`),
 };
+
+// ============================================
+// Learning Items API
+// ============================================
+export const learningItemsApi = {
+  getItems: (courseId: string) =>
+    apiGet<{ success: boolean; items: Array<{ id: number; course_id: string; item_text: string; sort_order: number }> }>(`/api/courses/${courseId}/learning-items`),
+};
