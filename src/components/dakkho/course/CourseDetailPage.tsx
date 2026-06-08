@@ -499,7 +499,7 @@ export function CourseDetailPage() {
               </div>
             </div>
 
-            <GradientButton className="w-full" size="lg" onClick={() => navigate('video-player', { videoId: videos[0]?.id, courseId: course.id })}>
+            <GradientButton className="w-full" size="lg" onClick={() => navigate('enrollment', { courseId: course.id })}>
               <Play className="w-4 h-4" />
               {course.price > 0 ? 'Enroll Now' : 'Start Learning'}
             </GradientButton>
@@ -543,7 +543,7 @@ export function CourseDetailPage() {
         <GradientButton
           className="w-full"
           size="lg"
-          onClick={() => navigate('video-player', { videoId: videos[0]?.id, courseId: course.id })}
+          onClick={() => navigate('enrollment', { courseId: course.id })}
         >
           <Play className="w-4 h-4" />
           {course.price > 0 ? 'Enroll Now' : 'Continue Learning'}

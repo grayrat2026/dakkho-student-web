@@ -41,7 +41,7 @@ export type Page =
   | 'category'
   // Misc pages
   | 'pricing' | 'changelog' | 'maintenance' | 'terms' | 'privacy'
-  | 'payment-result' | 'payment-cancel'
+  | 'payment-result' | 'payment-cancel' | 'enrollment'
   // Support pages
   | 'community-rules' | 'support-wizard' | 'ticket-detail' | 'support-chat'
   // Public pages (no auth required)
@@ -159,6 +159,7 @@ const pageToPath: Record<string, string> = {
   'privacy': '/privacy',
   'payment-result': '/payment/result',
   'payment-cancel': '/payment/cancel',
+  'enrollment': '/enrollment',
   'error-404': '/error/404',
   'error-500': '/error/500',
   // Support pages
@@ -204,6 +205,7 @@ export function pageToUrl(page: string, params?: Record<string, unknown>): strin
     if (params.courseId) extraSegments.push(String(params.courseId));
     if (params.videoId) extraSegments.push(String(params.videoId));
     if (params.instructorId) extraSegments.push(String(params.instructorId));
+    if (params.packageId) extraSegments.push(String(params.packageId));
     if (params.query) extraSegments.push(encodeURIComponent(String(params.query)));
     if (params.userId) extraSegments.push(String(params.userId));
     if (extraSegments.length > 0) {
@@ -244,6 +246,7 @@ export function urlToPage(urlPath: string): { page: string; params: Record<strin
       if (match === 'course-detail' && extraSegments[0]) params.courseId = extraSegments[0];
       else if (match === 'video-player' && extraSegments[0]) params.videoId = extraSegments[0];
       else if (match === 'instructor-profile' && extraSegments[0]) params.instructorId = extraSegments[0];
+      else if (match === 'enrollment' && extraSegments[0]) params.courseId = extraSegments[0];
       else if (match === 'search' && extraSegments[0]) params.query = decodeURIComponent(extraSegments[0]);
       else if (match === 'profile' && extraSegments[0]) params.userId = extraSegments[0];
       else {

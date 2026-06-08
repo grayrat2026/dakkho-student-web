@@ -139,6 +139,7 @@ import { TermsPage } from './misc/TermsPage';
 import { PrivacyPage } from './misc/PrivacyPage';
 import { PaymentResultPage } from './misc/PaymentResultPage';
 import { PaymentCancelPage } from './misc/PaymentCancelPage';
+import { EnrollmentPage } from './course/EnrollmentPage';
 import PublicPageLayout from './misc/PublicPageLayout';
 
 // Support pages
@@ -269,6 +270,7 @@ function PageRouter() {
     privacy: <PrivacyPage />,
     'payment-result': <PaymentResultPage />,
     'payment-cancel': <PaymentCancelPage />,
+    enrollment: <EnrollmentPage />,
     // Error pages
     'error-404': <Error404Page />,
     'error-500': <Error500Page />,
