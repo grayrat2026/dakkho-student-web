@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, Users, Clock, BookOpen, Play, ChevronLeft, Heart, Share2, Award, CheckCircle, ChevronDown, ChevronRight, User } from 'lucide-react';
-import { useNavigationStore, useBookmarkStore } from '@/lib/store';
+import { useNavigationStore, useBookmarkStore, useAuthStore } from '@/lib/store';
 import { useCourse, useInstructor, useCategories, useCourseVideos, useCourses } from '@/lib/data-hooks';
+import { studentProfileApi } from '@/lib/api-client';
 import { formatDuration, getLevelColor } from '@/lib/mock-data';
 import { GlassCard } from '../shared/GlassCard';
 import { GradientButton } from '../shared/GradientButton';
@@ -26,6 +27,30 @@ export function CourseDetailPage() {
   const { data: videos = [] } = useCourseVideos(courseId);
   const { data: allCourses = [] } = useCourses();
   const bookmarked = course ? isBookmarked(course.id) : false;
+
+  // Check enrollment status
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [checkingEnrollment, setCheckingEnrollment] = useState(true);
+
+  useEffect(() => {
+    async function checkEnrollment() {
+      if (!isAuthenticated || !courseId) {
+        setCheckingEnrollment(false);
+        return;
+      }
+      try {
+        const res = await studentProfileApi.enrollments({ limit: 100 });
+        const enrolled = res.enrollments?.some((e: any) => e.courseId === courseId) || false;
+        setIsEnrolled(enrolled);
+      } catch {
+        // Not enrolled or error
+      } finally {
+        setCheckingEnrollment(false);
+      }
+    }
+    checkEnrollment();
+  }, [courseId, isAuthenticated]);
 
   // Category from categories list
   const category = course ? categories.find((c) => c.id === course.categoryId) : undefined;
@@ -499,9 +524,9 @@ export function CourseDetailPage() {
               </div>
             </div>
 
-            <GradientButton className="w-full" size="lg" onClick={() => navigate('enrollment', { courseId: course.id })}>
+            <GradientButton className="w-full" size="lg" onClick={() => isEnrolled ? navigate('video-player', { courseId: course.id }) : navigate('enrollment', { courseId: course.id })}>
               <Play className="w-4 h-4" />
-              {course.price > 0 ? 'Enroll Now' : 'Start Learning'}
+              {isEnrolled ? 'Continue Learning' : (course.price > 0 ? 'Enroll Now' : 'Start Learning')}
             </GradientButton>
 
             <div className="space-y-3 text-sm pt-2">
@@ -543,10 +568,10 @@ export function CourseDetailPage() {
         <GradientButton
           className="w-full"
           size="lg"
-          onClick={() => navigate('enrollment', { courseId: course.id })}
+          onClick={() => isEnrolled ? navigate('video-player', { courseId: course.id }) : navigate('enrollment', { courseId: course.id })}
         >
           <Play className="w-4 h-4" />
-          {course.price > 0 ? 'Enroll Now' : 'Continue Learning'}
+          {isEnrolled ? 'Continue Learning' : (course.price > 0 ? 'Enroll Now' : 'Start Learning')}
         </GradientButton>
       </div>
     </div>

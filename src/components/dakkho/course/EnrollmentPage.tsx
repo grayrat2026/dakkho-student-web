@@ -7,7 +7,7 @@ import {
   Loader2, Lock, Gift, ChevronRight, X, Sparkles,
 } from 'lucide-react';
 import { useNavigationStore, useAuthStore } from '@/lib/store';
-import { courseApi, packageApi, paymentApi, couponApi, type CoursePackage } from '@/lib/api-client';
+import { courseApi, packageApi, paymentApi, couponApi, studentProfileApi, type CoursePackage } from '@/lib/api-client';
 import { GlassCard } from '../shared/GlassCard';
 import { GradientButton } from '../shared/GradientButton';
 import { AnimatedPage } from '../shared/AnimatedPage';
@@ -16,6 +16,7 @@ export function EnrollmentPage() {
   const navigate = useNavigationStore((s) => s.navigate);
   const pageParams = useNavigationStore((s) => s.pageParams);
   const user = useAuthStore((s) => s.user);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const courseId = pageParams?.courseId as string || '';
 
   const [course, setCourse] = useState<any>(null);
@@ -34,8 +35,20 @@ export function EnrollmentPage() {
       navigate('home');
       return;
     }
+    // Check if user is already enrolled — redirect to video player
+    if (isAuthenticated) {
+      studentProfileApi.enrollments({ limit: 100 }).then((res) => {
+        const isEnrolled = res.enrollments?.some((e: any) => e.courseId === courseId) || false;
+        if (isEnrolled) {
+          navigate('video-player', { courseId });
+          return;
+        }
+      }).catch(() => {
+        // Not enrolled — continue to enrollment page
+      });
+    }
     loadData();
-  }, [courseId]);
+  }, [courseId, isAuthenticated]);
 
   async function loadData() {
     setLoading(true);
