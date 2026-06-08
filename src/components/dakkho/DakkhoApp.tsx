@@ -39,6 +39,12 @@ import { AssignmentPage } from './assignment/AssignmentPage';
 import { DiscussionPage } from './discussion/DiscussionPage';
 import { AboutPage } from './about/AboutPage';
 
+// Books pages
+import { BooksPage } from './books/BooksPage';
+import { BookDetailPage } from './books/BookDetailPage';
+import { BookReaderPage } from './books/BookReaderPage';
+import { MyBooksPage } from './books/MyBooksPage';
+
 // Department pages
 import { CSEPage } from './department/CSEPage';
 import { ETEPage } from './department/ETEPage';
@@ -190,6 +196,11 @@ function PageRouter() {
     assignment: <AssignmentPage />,
     discussion: <DiscussionPage />,
     about: <AboutPage />,
+    // Books pages
+    books: <BooksPage />,
+    'book-detail': <BookDetailPage />,
+    'book-reader': <BookReaderPage />,
+    'my-books': <MyBooksPage />,
     // Department pages
     'dept-cse': <CSEPage />,
     'dept-ete': <ETEPage />,
@@ -288,8 +299,8 @@ function PageRouter() {
   };
 
   // Include pageParams in key for pages that need full remount on param change
-  const paramKey = (pageParams?.videoId || pageParams?.courseId || pageParams?.instructorId)
-    ? `-${pageParams.videoId || ''}${pageParams.courseId || ''}${pageParams.instructorId || ''}`
+  const paramKey = (pageParams?.videoId || pageParams?.courseId || pageParams?.instructorId || pageParams?.bookId)
+    ? `-${pageParams.videoId || ''}${pageParams.courseId || ''}${pageParams.instructorId || ''}${pageParams.bookId || ''}`
     : '';
 
   return (

@@ -572,3 +572,25 @@ export const videoResourcesApi = {
   getResources: (videoId: string) =>
     apiGet<{ success: boolean; resources: Array<{ id: number; video_id: string; course_id: string; title: string; resource_type: string; file_key: string; file_url: string; file_size: number; sort_order: number }> }>(`/api/videos/${videoId}/resources`),
 };
+
+// ============================================
+// Books API
+// ============================================
+export const booksApi = {
+  list: (params?: { technology?: string; book_type?: string; search?: string; limit?: number; offset?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.technology) query.set('technology', params.technology);
+    if (params?.book_type) query.set('book_type', params.book_type);
+    if (params?.search) query.set('search', params.search);
+    if (params?.limit) query.set('limit', String(params.limit));
+    if (params?.offset) query.set('offset', String(params.offset));
+    const qs = query.toString();
+    return apiGet<{ books: any[]; total: number }>(`/api/books${qs ? `?${qs}` : ''}`);
+  },
+  get: (id: string) =>
+    apiGet<{ book: any }>(`/api/books/${id}`),
+  order: (id: string, data: { delivery_address?: string }) =>
+    apiPost<{ success: boolean; pp_url?: string; status?: string; message?: string }>(`/api/books/${id}/order`, data),
+  myOrders: () =>
+    apiGet<{ orders: any[] }>('/api/books/my-orders'),
+};

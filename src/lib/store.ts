@@ -39,6 +39,8 @@ export type Page =
   | 'leaderboard' | 'study-groups' | 'peer-connections' | 'community' | 'feedback' | 'roadmap'
   // Category
   | 'category'
+  // Books
+  | 'books' | 'book-detail' | 'book-reader' | 'my-books'
   // Misc pages
   | 'pricing' | 'changelog' | 'maintenance' | 'terms' | 'privacy'
   | 'payment-result' | 'payment-cancel' | 'enrollment'
@@ -152,6 +154,10 @@ const pageToPath: Record<string, string> = {
   'feedback': '/community/feedback',
   'roadmap': '/community/roadmap',
   'category': '/category',
+  'books': '/books',
+  'book-detail': '/book/detail',
+  'book-reader': '/book/read',
+  'my-books': '/my-books',
   'pricing': '/pricing',
   'changelog': '/changelog',
   'maintenance': '/maintenance',
@@ -205,6 +211,7 @@ export function pageToUrl(page: string, params?: Record<string, unknown>): strin
     if (params.courseId) extraSegments.push(String(params.courseId));
     if (params.videoId) extraSegments.push(String(params.videoId));
     if (params.instructorId) extraSegments.push(String(params.instructorId));
+    if (params.bookId) extraSegments.push(String(params.bookId));
     if (params.packageId) extraSegments.push(String(params.packageId));
     if (params.query) extraSegments.push(encodeURIComponent(String(params.query)));
     if (params.userId) extraSegments.push(String(params.userId));
@@ -246,6 +253,8 @@ export function urlToPage(urlPath: string): { page: string; params: Record<strin
       if (match === 'course-detail' && extraSegments[0]) params.courseId = extraSegments[0];
       else if (match === 'video-player' && extraSegments[0]) params.videoId = extraSegments[0];
       else if (match === 'instructor-profile' && extraSegments[0]) params.instructorId = extraSegments[0];
+      else if (match === 'book-detail' && extraSegments[0]) params.bookId = extraSegments[0];
+      else if (match === 'book-reader' && extraSegments[0]) params.bookId = extraSegments[0];
       else if (match === 'enrollment' && extraSegments[0]) params.courseId = extraSegments[0];
       else if (match === 'search' && extraSegments[0]) params.query = decodeURIComponent(extraSegments[0]);
       else if (match === 'profile' && extraSegments[0]) params.userId = extraSegments[0];
