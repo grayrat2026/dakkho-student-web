@@ -17,6 +17,7 @@ export function EditProfilePage() {
   const { goBack, navigate } = useNavigationStore();
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
+  const refreshUser = useAuthStore((s) => s.refreshUser);
 
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [email, setEmail] = useState(user?.email || '');
@@ -110,9 +111,8 @@ export function EditProfilePage() {
       const result = await studentProfileApi.update(updates as Parameters<typeof studentProfileApi.update>[0]);
 
       if (result.success !== false) {
-        if (user) {
-          setUser({ ...user, fullName, email, institute, technology, phone, bio, semester });
-        }
+        // Re-fetch user from server to verify persistence
+        await refreshUser();
         setSaved(true);
         setTimeout(() => setSaved(false), 3000);
       } else {
@@ -129,9 +129,8 @@ export function EditProfilePage() {
             try {
               const retryResult = await studentProfileApi.update(safeUpdates as Parameters<typeof studentProfileApi.update>[0]);
               if (retryResult.success !== false) {
-                if (user) {
-                  setUser({ ...user, fullName, email, institute, technology, phone, bio, semester });
-                }
+                // Re-fetch user from server to verify persistence
+                await refreshUser();
                 setSaveError('Profile partially updated. Some fields (bio/phone/semester) require admin setup.');
                 setSaved(true);
                 setTimeout(() => setSaved(false), 3000);
@@ -164,9 +163,8 @@ export function EditProfilePage() {
           if (instituteId) safeUpdates.instituteId = instituteId;
 
           await studentProfileApi.update(safeUpdates as Parameters<typeof studentProfileApi.update>[0]);
-          if (user) {
-            setUser({ ...user, fullName, email, institute, technology, phone, bio, semester });
-          }
+          // Re-fetch user from server to verify persistence
+          await refreshUser();
           setSaveError('Profile partially updated. Some fields (bio/phone/semester) require admin setup.');
           setSaved(true);
           setTimeout(() => setSaved(false), 3000);

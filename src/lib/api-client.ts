@@ -318,6 +318,13 @@ export const videoApi = {
 export const studentProfileApi = {
   stats: () => apiGet<{ stats: { coursesEnrolled: number; hoursWatched: number; certificates: number; currentStreak: number }; profile: { phone: string; bio: string; semester: string; avatarUrl: string } }>('/api/student/profile/stats'),
   update: (data: { name?: string; phone?: string; bio?: string; semester?: string; technology?: string; instituteId?: string }) => apiPut<{ success: boolean; updated: Record<string, unknown> }>('/api/student/profile', data),
+  enrollments: (params?: { limit?: number; offset?: number }) => {
+    const query = new URLSearchParams();
+    if (params?.limit) query.set('limit', String(params.limit));
+    if (params?.offset) query.set('offset', String(params.offset));
+    const qs = query.toString();
+    return apiGet<{ success: boolean; enrollments: Array<{ enrollmentId: string; courseId: string; enrolledAt: string; enrolledVia: string; status: string; course: { id: string; title: string; thumbnailUrl: string; price: number; level: string; duration: number; totalVideos: number; technology: string; isPublished: boolean } | null }>; total: number }>(`/api/student/enrollments${qs ? `?${qs}` : ''}`);
+  },
   uploadAvatar: async (file: File): Promise<{ success: boolean; avatarUrl: string }> => {
     const formData = new FormData();
     formData.append('avatar', file);

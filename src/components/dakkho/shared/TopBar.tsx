@@ -15,7 +15,14 @@ export function TopBar() {
   const storeSetQuery = useSearchStore((s) => s.setQuery);
   const storeNotifications = useNotificationStore((s) => s.notifications);
   const markAsRead = useNotificationStore((s) => s.markAsRead);
-  const isTopBarElementVisible = useServerConfigStore((s) => s.isTopBarElementVisible);
+  // Subscribe to config directly so re-renders happen when config loads
+  const topBarElements = useServerConfigStore((s) => s.config?.topBarElements);
+
+  // Resolve visibility: use config if available, otherwise default all true
+  const isVisible = (element: string) => {
+    if (!topBarElements) return true; // Default visible before config loads
+    return (topBarElements as Record<string, boolean>)[element] ?? true;
+  };
 
   // Only count actual unread notifications from store - no mock fallback
   const unreadCount = storeNotifications.filter(n => !n.isRead).length;
@@ -52,7 +59,7 @@ export function TopBar() {
         </div>
 
         {/* CENTER: Search bar */}
-        {isTopBarElementVisible('search') && (
+        {isVisible('search') && (
         <motion.div
           className="flex-1 max-w-lg mx-auto"
           animate={{ scale: searchFocused ? 1.02 : 1 }}
@@ -91,7 +98,7 @@ export function TopBar() {
         {/* RIGHT side: Notification bell + User avatar + Hamburger (mobile) */}
         <div className="flex items-center gap-2 flex-shrink-0">
           {/* Notification bell with proper badge */}
-          {isTopBarElementVisible('notifications') && (
+          {isVisible('notifications') && (
           <motion.button
             className="relative w-10 h-10 rounded-xl bg-muted/50 dark:bg-muted/30 flex items-center justify-center"
             onClick={handleNotificationClick}
@@ -120,7 +127,7 @@ export function TopBar() {
           )}
 
           {/* User avatar (desktop only) */}
-          {isTopBarElementVisible('avatar') && (
+          {isVisible('avatar') && (
           <motion.button
             className={`hidden md:flex w-10 h-10 rounded-xl items-center justify-center text-white font-bold text-sm shadow-lg ${user?.avatarUrl && !avatarFailed ? '' : 'bg-gradient-to-br from-sky-400 to-blue-600 shadow-sky-500/20'}`}
             onClick={() => navigate('profile')}
@@ -136,7 +143,7 @@ export function TopBar() {
           )}
 
           {/* Hamburger menu (mobile only) — RIGHT side */}
-          {isTopBarElementVisible('hamburger') && (
+          {isVisible('hamburger') && (
           <motion.button
             className="md:hidden w-10 h-10 rounded-xl bg-muted/50 dark:bg-muted/30 flex items-center justify-center"
             onClick={toggleSidebar}

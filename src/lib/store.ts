@@ -610,6 +610,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           emailVerified: res.user.emailVerified,
           avatarUrl: res.user.avatarUrl || currentUser?.avatarUrl || '',
           role: 'student',
+          enrolledCourseIds: currentUser?.enrolledCourseIds || [],
         };
         set({ user });
         saveAuthSession(user, true);
