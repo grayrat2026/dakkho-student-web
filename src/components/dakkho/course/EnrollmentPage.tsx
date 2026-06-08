@@ -7,7 +7,7 @@ import {
   Loader2, Lock, Gift, ChevronRight, X, Sparkles,
 } from 'lucide-react';
 import { useNavigationStore, useAuthStore } from '@/lib/store';
-import { courseApi, packageApi, paymentApi, couponApi, studentProfileApi, type CoursePackage } from '@/lib/api-client';
+import { courseApi, packageApi, paymentApi, couponApi, studentProfileApi, enrollmentApi, type CoursePackage } from '@/lib/api-client';
 import { GlassCard } from '../shared/GlassCard';
 import { GradientButton } from '../shared/GradientButton';
 import { AnimatedPage } from '../shared/AnimatedPage';
@@ -117,25 +117,19 @@ export function EnrollmentPage() {
     setIsFreeEnrolling(true);
     setError(null);
     try {
-      // For free courses, we still create a payment with a 0-amount package
-      // If no packages exist, create a direct enrollment via the API
-      if (packages.length > 0) {
-        const freePkg = packages.find(p => p.price === 0) || packages[0];
-        const result = await paymentApi.create({ packageId: freePkg.id });
-        if (result.pp_url) {
-          window.location.href = result.pp_url;
-        } else {
-          // If no redirect URL, enrollment was successful
-          navigate('my-courses');
-        }
+      // Use the dedicated free enrollment API with server-side price validation
+      const result = await enrollmentApi.freeEnroll(course.id);
+      if (result.success) {
+        // Enrollment successful — navigate to course content
+        navigate('my-courses');
       } else {
-        // No packages — try to navigate directly (course is truly free)
-        navigate('video-player', { courseId: course.id });
+        setError(result.message || 'Enrollment failed. Please try again.');
       }
     } catch (err: any) {
-      // If payment API fails for free courses, just navigate to the course
+      // Show error instead of navigating to video player
+      const errorMsg = err?.response?.data?.error || err?.message || 'Free enrollment failed. Please try again.';
+      setError(errorMsg);
       console.error('Free enrollment error:', err);
-      navigate('video-player', { courseId: course.id });
     } finally {
       setIsFreeEnrolling(false);
     }

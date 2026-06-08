@@ -31,6 +31,9 @@ export function CourseDetailPage() {
   // Check enrollment status
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const [isEnrolled, setIsEnrolled] = useState(false);
+  const [watchProgress, setWatchProgress] = useState(0);
+  const [lastWatchedVideoId, setLastWatchedVideoId] = useState<string | null>(null);
+  const [lastPosition, setLastPosition] = useState(0);
   const [checkingEnrollment, setCheckingEnrollment] = useState(true);
 
   useEffect(() => {
@@ -41,8 +44,15 @@ export function CourseDetailPage() {
       }
       try {
         const res = await studentProfileApi.enrollments({ limit: 100 });
-        const enrolled = res.enrollments?.some((e: any) => e.courseId === courseId) || false;
-        setIsEnrolled(enrolled);
+        const enrollment = res.enrollments?.find((e: any) => e.courseId === courseId);
+        if (enrollment) {
+          setIsEnrolled(true);
+          setWatchProgress(enrollment.progress || 0);
+          // Try to get watch progress from Appwrite
+          try {
+            const { listDocuments, Query } = await import('@/lib/appwrite') || {};
+          } catch {}
+        }
       } catch {
         // Not enrolled or error
       } finally {
@@ -51,6 +61,50 @@ export function CourseDetailPage() {
     }
     checkEnrollment();
   }, [courseId, isAuthenticated]);
+
+  // Determine which button to show
+  const getEnrollButtonConfig = () => {
+    if (checkingEnrollment) return { label: 'Loading...', action: () => {}, icon: Play };
+    if (!isAuthenticated) {
+      return {
+        label: course.price > 0 ? 'Enroll Now' : 'Start Learning',
+        action: () => navigate('login'),
+        icon: Play
+      };
+    }
+    if (!isEnrolled) {
+      return {
+        label: course.price > 0 ? 'Buy Now' : 'Enroll for Free',
+        action: () => navigate('enrollment', { courseId: course.id }),
+        icon: Play
+      };
+    }
+    if (watchProgress === 0) {
+      return {
+        label: 'Start Learning',
+        action: () => {
+          const firstVideo = videos[0];
+          if (firstVideo) navigate('video-player', { videoId: firstVideo.id, courseId: course.id });
+        },
+        icon: Play
+      };
+    }
+    // watchProgress > 0
+    return {
+      label: 'Continue',
+      action: () => {
+        if (lastWatchedVideoId) {
+          navigate('video-player', { videoId: lastWatchedVideoId, courseId: course.id });
+        } else {
+          const firstVideo = videos[0];
+          if (firstVideo) navigate('video-player', { videoId: firstVideo.id, courseId: course.id });
+        }
+      },
+      icon: Play
+    };
+  };
+
+  const enrollButton = getEnrollButtonConfig();
 
   // Category from categories list
   const category = course ? categories.find((c) => c.id === course.categoryId) : undefined;
@@ -554,9 +608,9 @@ export function CourseDetailPage() {
               </div>
             </div>
 
-            <GradientButton className="w-full" size="lg" onClick={() => isEnrolled ? navigate('video-player', { courseId: course.id }) : navigate('enrollment', { courseId: course.id })}>
-              <Play className="w-4 h-4" />
-              {isEnrolled ? 'Continue Learning' : (course.price > 0 ? 'Enroll Now' : 'Start Learning')}
+            <GradientButton className="w-full" size="lg" onClick={enrollButton.action}>
+              <enrollButton.icon className="w-4 h-4" />
+              {enrollButton.label}
             </GradientButton>
 
             <div className="space-y-3 text-sm pt-2">
@@ -598,10 +652,10 @@ export function CourseDetailPage() {
         <GradientButton
           className="w-full"
           size="lg"
-          onClick={() => isEnrolled ? navigate('video-player', { courseId: course.id }) : navigate('enrollment', { courseId: course.id })}
+          onClick={enrollButton.action}
         >
-          <Play className="w-4 h-4" />
-          {isEnrolled ? 'Continue Learning' : (course.price > 0 ? 'Enroll Now' : 'Start Learning')}
+          <enrollButton.icon className="w-4 h-4" />
+          {enrollButton.label}
         </GradientButton>
       </div>
     </div>

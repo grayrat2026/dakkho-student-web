@@ -314,6 +314,12 @@ export const videoApi = {
     api.get<{ url: string }>(`/api/video/stream-url?key=${key}&bucket=${bucket || 'videos'}`),
 };
 
+// ─── Enrollment ───
+export const enrollmentApi = {
+  freeEnroll: (courseId: string) =>
+    apiPost<{ success: boolean; message: string; alreadyEnrolled?: boolean }>('/api/student/enroll/free', { courseId }),
+};
+
 // ─── Student Profile & Stats ───
 export const studentProfileApi = {
   stats: () => apiGet<{ stats: { coursesEnrolled: number; hoursWatched: number; certificates: number; currentStreak: number }; profile: { phone: string; bio: string; semester: string; avatarUrl: string } }>('/api/student/profile/stats'),
