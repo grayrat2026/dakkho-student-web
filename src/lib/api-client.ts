@@ -521,6 +521,27 @@ export const reviewsApi = {
 };
 
 // ============================================
+// Course Reviews API
+// ============================================
+export const courseReviewsApi = {
+  getReviews: (courseId: string, page?: number, limit?: number) => {
+    const params = new URLSearchParams();
+    if (page) params.set('page', String(page));
+    if (limit) params.set('limit', String(limit));
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return apiGet<{ success: boolean; reviews: any[]; stats: { average_rating: number; total_reviews: number; rating_distribution: Record<number, number> }; page: number; limit: number }>(`/api/courses/${courseId}/reviews${qs}`);
+  },
+
+  createReview: (courseId: string, data: { rating: number; review?: string; is_anonymous?: boolean }) =>
+    apiPost<{ success: boolean; message: string }>(`/api/courses/${courseId}/reviews`, data),
+
+  markHelpful: (reviewId: string) =>
+    apiPut<{ success: boolean }>(`/api/course-reviews/${reviewId}/helpful`, {}),
+  markUnhelpful: (reviewId: string) =>
+    apiPut<{ success: boolean }>(`/api/course-reviews/${reviewId}/unhelpful`, {}),
+};
+
+// ============================================
 // Schedule API
 // ============================================
 export const scheduleApi = {
