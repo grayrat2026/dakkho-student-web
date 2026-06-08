@@ -564,3 +564,11 @@ export const learningItemsApi = {
   getItems: (courseId: string) =>
     apiGet<{ success: boolean; items: Array<{ id: number; course_id: string; item_text: string; sort_order: number }> }>(`/api/courses/${courseId}/learning-items`),
 };
+
+// ============================================
+// Video Resources API
+// ============================================
+export const videoResourcesApi = {
+  getResources: (videoId: string) =>
+    apiGet<{ success: boolean; resources: Array<{ id: number; video_id: string; course_id: string; title: string; resource_type: string; file_key: string; file_url: string; file_size: number; sort_order: number }> }>(`/api/videos/${videoId}/resources`),
+};

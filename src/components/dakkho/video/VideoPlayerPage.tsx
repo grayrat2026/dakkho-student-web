@@ -27,10 +27,13 @@ import {
   X,
   Loader2,
   AlertCircle,
+  FileText,
+  Download,
+  Eye,
 } from 'lucide-react';
 import { useNavigationStore, useWatchProgressStore } from '@/lib/store';
 import { formatDuration } from '@/lib/mock-data';
-import { courseApi, videoApi } from '@/lib/api-client';
+import { courseApi, videoApi, videoResourcesApi } from '@/lib/api-client';
 import { DatabaseService, COLLECTION_IDS, Query } from '@/lib/appwrite';
 import { GlassCard } from '../shared/GlassCard';
 import { GradientButton } from '../shared/GradientButton';
@@ -65,6 +68,18 @@ interface ReplyItem {
 interface ChapterMarker {
   time: number;
   label: string;
+}
+
+interface LessonResource {
+  id: number;
+  video_id: string;
+  course_id: string;
+  title: string;
+  resource_type: string;
+  file_key: string;
+  file_url: string;
+  file_size: number;
+  sort_order: number;
 }
 
 interface InstructorData {
@@ -181,7 +196,12 @@ export function VideoPlayerPage() {
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // --- Tabs ---
-  const [activeTab, setActiveTab] = useState<'upnext' | 'notes' | 'qa'>('upnext');
+  const [activeTab, setActiveTab] = useState<'upnext' | 'notes' | 'qa' | 'resources'>('upnext');
+
+  // --- Resources ---
+  const [resources, setResources] = useState<LessonResource[]>([]);
+  const [resourcesLoading, setResourcesLoading] = useState(false);
+  const [previewResource, setPreviewResource] = useState<LessonResource | null>(null);
 
   // --- Notes ---
   const [notes, setNotes] = useState<VideoNote[]>([]);
@@ -264,6 +284,29 @@ export function VideoPlayerPage() {
     fetchData();
     return () => { cancelled = true; };
   }, [courseId]);
+
+  // --- Fetch resources for current video ---
+  useEffect(() => {
+    if (!videoId) return;
+    let cancelled = false;
+
+    async function fetchResources() {
+      setResourcesLoading(true);
+      try {
+        const res = await videoResourcesApi.getResources(videoId);
+        if (!cancelled) {
+          setResources(res.resources || []);
+        }
+      } catch {
+        if (!cancelled) setResources([]);
+      } finally {
+        if (!cancelled) setResourcesLoading(false);
+      }
+    }
+
+    fetchResources();
+    return () => { cancelled = true; };
+  }, [videoId]);
 
   // --- Fetch stream URL when play is pressed ---
   const fetchStreamUrl = useCallback(async (videoKey: string) => {
@@ -1051,6 +1094,7 @@ export function VideoPlayerPage() {
                 { key: 'upnext' as const, icon: ListVideo, label: 'Up Next' },
                 { key: 'notes' as const, icon: BookOpen, label: 'Notes' },
                 { key: 'qa' as const, icon: MessageSquare, label: 'Q&A' },
+                { key: 'resources' as const, icon: FileText, label: 'Resources' },
               ].map((tab) => (
                 <button
                   key={tab.key}
@@ -1172,6 +1216,158 @@ export function VideoPlayerPage() {
                       ))}
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Resources Tab */}
+              {activeTab === 'resources' && (
+                <div className="p-4">
+                  {resourcesLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-6 h-6 text-sky-500 animate-spin" />
+                    </div>
+                  ) : resources.length === 0 ? (
+                    <div className="text-center text-sm text-muted-foreground py-6">
+                      <FileText className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+                      <p>No resources available</p>
+                      <p className="text-xs">Resources for this lesson will appear here</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {resources.map((res, i) => (
+                        <motion.div
+                          key={res.id}
+                          className="flex items-center gap-3 p-3 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-white/30 dark:border-white/10 cursor-pointer hover:bg-white/70 dark:hover:bg-slate-800/70 transition-colors"
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                          onClick={() => setPreviewResource(res)}
+                        >
+                          <div
+                            className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                              res.resource_type === 'pdf'
+                                ? 'bg-red-100 dark:bg-red-900/30 text-red-500'
+                                : 'bg-blue-100 dark:bg-blue-900/30 text-blue-500'
+                            }`}
+                          >
+                            {res.resource_type === 'pdf' ? (
+                              <FileText className="w-5 h-5" />
+                            ) : (
+                              <Eye className="w-5 h-5" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-foreground line-clamp-1">{res.title}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-xs text-muted-foreground">
+                                {res.resource_type?.toUpperCase()}
+                              </span>
+                              {res.file_size > 0 && (
+                                <>
+                                  <span className="text-[10px] text-muted-foreground/50">•</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    {res.file_size < 1024 * 1024
+                                      ? `${Math.round(res.file_size / 1024)} KB`
+                                      : `${(res.file_size / (1024 * 1024)).toFixed(1)} MB`}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          {res.file_url && (
+                            <a
+                              href={res.file_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="p-1.5 rounded-lg hover:bg-sky-50 dark:hover:bg-sky-900/20 text-sky-500 transition-colors flex-shrink-0"
+                              onClick={(e) => e.stopPropagation()}
+                              title="Download"
+                            >
+                              <Download className="w-4 h-4" />
+                            </a>
+                          )}
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Resource Preview Modal */}
+                  <AnimatePresence>
+                    {previewResource && previewResource.file_url && (
+                      <motion.div
+                        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setPreviewResource(null)}
+                      >
+                        <motion.div
+                          className="bg-white dark:bg-slate-900 rounded-2xl border border-white/20 dark:border-white/10 max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+                          initial={{ scale: 0.9, y: 20 }}
+                          animate={{ scale: 1, y: 0 }}
+                          exit={{ scale: 0.9, y: 20 }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {/* Header */}
+                          <div className="flex items-center justify-between p-4 border-b border-white/10">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                  previewResource.resource_type === 'pdf'
+                                    ? 'bg-red-100 dark:bg-red-900/30 text-red-500'
+                                    : 'bg-blue-100 dark:bg-blue-900/30 text-blue-500'
+                                }`}
+                              >
+                                {previewResource.resource_type === 'pdf' ? (
+                                  <FileText className="w-4 h-4" />
+                                ) : (
+                                  <Eye className="w-4 h-4" />
+                                )}
+                              </div>
+                              <h3 className="text-sm font-bold text-foreground truncate">
+                                {previewResource.title}
+                              </h3>
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
+                              <a
+                                href={previewResource.file_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-2 rounded-lg hover:bg-muted/50 text-sky-500 transition-colors"
+                                title="Open in new tab"
+                              >
+                                <Download className="w-4 h-4" />
+                              </a>
+                              <button
+                                className="p-2 rounded-lg hover:bg-muted/50 text-muted-foreground transition-colors"
+                                onClick={() => setPreviewResource(null)}
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                          {/* Content */}
+                          <div className="flex-1 overflow-auto p-0">
+                            {previewResource.resource_type === 'pdf' ? (
+                              <iframe
+                                src={previewResource.file_url}
+                                className="w-full h-[70vh] border-0"
+                                title={previewResource.title}
+                              />
+                            ) : (
+                              <div className="flex items-center justify-center p-4">
+                                <img
+                                  src={previewResource.file_url}
+                                  alt={previewResource.title}
+                                  className="max-w-full max-h-[70vh] rounded-lg object-contain"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               )}
 
