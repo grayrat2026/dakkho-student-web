@@ -25,12 +25,49 @@ import { leaderboardApi } from '@/lib/api-client';
 function NewReleases() {
   const navigate = useNavigationStore((s) => s.navigate);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { data: allCourses, loading: coursesLoading } = useCourses({ limit: 20 });
   const { data: instructors, loading: instructorsLoading } = useInstructors({ limit: 20 });
 
-  const loading = coursesLoading || instructorsLoading;
+  // Fetch new releases from dedicated API endpoint
+  const [newReleaseCourses, setNewReleaseCourses] = useState<Course[]>([]);
+  const [isNewRelease, setIsNewRelease] = useState(true);
+  const [sectionTitle, setSectionTitle] = useState('New Releases');
+  const [loading, setLoading] = useState(true);
 
-  const newReleases = allCourses.filter((c) => c.isFeatured).slice(0, 8);
+  useEffect(() => {
+    let cancelled = false;
+    const API_BASE = 'https://dakkho-admin-api.dakkho-admin.workers.dev';
+    fetch(`${API_BASE}/api/courses/new-releases?limit=10`)
+      .then(res => res.json())
+      .then(data => {
+        if (!cancelled && data.courses) {
+          const courses = (data.courses as Record<string, unknown>[]).map((doc: any) => ({
+            id: doc.$id || doc.id || '',
+            title: doc.title || doc.title_en || 'Untitled',
+            description: doc.description || '',
+            thumbnail: doc.thumbnail_url || doc.thumbnailUrl || '',
+            instructorId: doc.instructorId || '',
+            price: doc.price_bdt || doc.price || 0,
+            rating: doc.rating_avg || 0,
+            totalStudents: doc.enrollment_count || 0,
+            duration: doc.total_duration_minutes || 0,
+            isFeatured: doc.is_featured || false,
+            level: doc.level || 'beginner',
+          }));
+          setNewReleaseCourses(courses);
+          setIsNewRelease(data.is_new_release !== false);
+          setSectionTitle(data.section_title || 'New Releases');
+        }
+      })
+      .catch(() => {
+        // Fallback: silently fail
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const isLoading = loading || instructorsLoading;
 
   const findInstructor = (id: string) => instructors.find((i) => i.id === id);
 
@@ -47,11 +84,11 @@ function NewReleases() {
     'from-rose-400 to-pink-600',
   ];
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-extrabold text-foreground">New Releases</h2>
+          <h2 className="text-lg font-extrabold text-foreground">{sectionTitle}</h2>
         </div>
         <div className="flex gap-4 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
           <LoadingSkeleton type="card" count={4} className="w-64 flex-shrink-0" />
@@ -60,10 +97,19 @@ function NewReleases() {
     );
   }
 
+  if (newReleaseCourses.length === 0) return null;
+
   return (
     <div className="mb-8">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-extrabold text-foreground">New Releases</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-extrabold text-foreground">{sectionTitle}</h2>
+          {isNewRelease && (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+              NEW
+            </span>
+          )}
+        </div>
         <div className="flex gap-2">
           <motion.button
             className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center"
@@ -89,7 +135,7 @@ function NewReleases() {
         className="flex gap-4 overflow-x-auto pb-2"
         style={{ scrollbarWidth: 'none' }}
       >
-        {newReleases.map((course, i) => {
+        {newReleaseCourses.map((course, i) => {
           const instructor = findInstructor(course.instructorId);
           const colorClass = thumbnailColors[i % thumbnailColors.length];
           return (
@@ -114,9 +160,16 @@ function NewReleases() {
                       <Play className="w-5 h-5 text-sky-600 ml-0.5" fill="currentColor" />
                     </div>
                   </motion.div>
-                  <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold text-white bg-emerald-500/80 backdrop-blur-sm">
-                    NEW
-                  </span>
+                  {isNewRelease && (
+                    <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold text-white bg-emerald-500/80 backdrop-blur-sm">
+                      NEW
+                    </span>
+                  )}
+                  {!isNewRelease && (
+                    <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold text-white bg-sky-500/80 backdrop-blur-sm">
+                      LATEST
+                    </span>
+                  )}
                   <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded-md bg-black/50 text-white text-[10px] font-bold flex items-center gap-1">
                     <Clock className="w-3 h-3" />
                     {formatDuration(course.duration)}
